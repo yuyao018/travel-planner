@@ -196,3 +196,42 @@
     color: var(--orange);
     transform: translateX(-5px);
 }
+
+/* Edit Trip Page Styles */
+.edit-trip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.edit-trip-header h1 {
+  margin: 0;
+}
+
+.btn-delete-trip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.2rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.btn-delete-trip:hover {
+  background: #a71d2a;
+}
+
+.form-error {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}

@@ -349,3 +349,27 @@
     .dashboard-content { padding: 20px; }
     .stats-grid { grid-template-columns: 1fr; }
 }
+
+/* Trip card actions */
+.trip-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.btn-edit-trip {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: #666;
+  padding: 0.3rem;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.btn-edit-trip:hover {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}

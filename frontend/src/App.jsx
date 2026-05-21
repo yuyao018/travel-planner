@@ -1,13 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
+import { useAuth } from './context/AuthContext';
 import SignIn from './signIn';
 import Home from './home';
 import AddTrip from './addTrip';
+import EditTrip from './editTrip';
 import PlanView from './planView';
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('landing');
   const [selectedTripId, setSelectedTripId] = useState(null);
+
+  // Router guard: redirect to signin if trying to access protected pages while not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated && ['home', 'addtrip', 'edittrip', 'planview'].includes(currentPage)) {
+      setCurrentPage('signin');
+    }
+  }, [isAuthenticated, loading, currentPage]);
+
+  // If user is authenticated and on landing page, go to home
+  useEffect(() => {
+    if (!loading && isAuthenticated && currentPage === 'landing') {
+      setCurrentPage('home');
+    }
+  }, [isAuthenticated, loading]);
+
+  // Show nothing while checking auth state
+  if (loading) return null;
 
   if (currentPage === 'signin') {
     return <SignIn setCurrentPage={setCurrentPage} />;
@@ -19,6 +39,10 @@ function App() {
 
   if (currentPage === 'addtrip') {
     return <AddTrip setCurrentPage={setCurrentPage} />;
+  }
+
+  if (currentPage === 'edittrip') {
+    return <EditTrip setCurrentPage={setCurrentPage} tripId={selectedTripId} />;
   }
 
   if (currentPage === 'planview') {

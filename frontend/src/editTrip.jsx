@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './addTrip.css';
 import { tripsAPI } from './services/api';
 
 const PREFERENCE_OPTIONS = ['Shopping', 'Food', 'Scenery', 'Adventure', 'Culture'];
 
-function AddTrip({ setCurrentPage }) {
+function EditTrip({ setCurrentPage, tripId }) {
   const [formData, setFormData] = useState({
     tripName: '',
     destination: '',
@@ -22,7 +22,41 @@ function AddTrip({ setCurrentPage }) {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Fetch existing trip data on mount
+  useEffect(() => {
+    const fetchTrip = async () => {
+      try {
+        const data = await tripsAPI.getOne(tripId);
+        const trip = data.trip;
+
+        setFormData({
+          tripName: trip.tripName || '',
+          destination: trip.destination || '',
+          startDate: trip.startDate ? trip.startDate.split('T')[0] : '',
+          endDate: trip.endDate ? trip.endDate.split('T')[0] : '',
+          budget: trip.budget || '',
+          currency: trip.currency || 'USD',
+          arrivalTime: trip.arrivalTime || '',
+          departureTime: trip.departureTime || '',
+          hotelLocation: trip.hotelLocation || '',
+          hotelCheckIn: trip.hotelCheckIn || '',
+          hotelCheckOut: trip.hotelCheckOut || '',
+          travelPreferences: trip.travelPreferences || [],
+          notes: trip.notes || ''
+        });
+      } catch (err) {
+        setError('Failed to load trip data.');
+        console.error('Fetch trip error:', err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (tripId) fetchTrip();
+  }, [tripId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -48,7 +82,6 @@ function AddTrip({ setCurrentPage }) {
     e.preventDefault();
     setError('');
 
-    // Validation: End Date cannot be before Start Date
     if (new Date(formData.endDate) < new Date(formData.startDate)) {
       setError('End Date cannot be earlier than Start Date.');
       return;
@@ -57,20 +90,41 @@ function AddTrip({ setCurrentPage }) {
     setIsSubmitting(true);
 
     try {
-      // Submit to backend API
-      await tripsAPI.create({
+      await tripsAPI.update(tripId, {
         ...formData,
         budget: parseFloat(formData.budget) || 0,
       });
 
-      // Navigate back to dashboard
       setCurrentPage('home');
     } catch (err) {
-      setError(err.message || 'Failed to create trip. Please try again.');
+      setError(err.message || 'Failed to update trip. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this trip? This will also remove all stops and expenses.')) {
+      return;
+    }
+
+    try {
+      await tripsAPI.delete(tripId);
+      setCurrentPage('home');
+    } catch (err) {
+      setError(err.message || 'Failed to delete trip.');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="add-trip-container">
+        <div className="add-trip-card">
+          <p>Loading trip data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="add-trip-container">
@@ -78,7 +132,12 @@ function AddTrip({ setCurrentPage }) {
         <ion-icon name="arrow-back-outline"></ion-icon> Back to Home
       </div>
       <div className="add-trip-card">
-        <h1>Create New Trip</h1>
+        <div className="edit-trip-header">
+          <h1>Edit Trip</h1>
+          <button className="btn-delete-trip" onClick={handleDelete}>
+            <ion-icon name="trash-outline"></ion-icon> Delete Trip
+          </button>
+        </div>
 
         {error && <div className="form-error">{error}</div>}
         
@@ -268,7 +327,7 @@ function AddTrip({ setCurrentPage }) {
               Cancel
             </button>
             <button type="submit" className="btn-submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Trip'}
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
@@ -277,4 +336,4 @@ function AddTrip({ setCurrentPage }) {
   );
 }
 
-export default AddTrip;
+export default EditTrip;
