@@ -1,0 +1,133 @@
+/* src/App.css */
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.travel-container {
+  min-height: 100vh;
+  background-color: #EA6A20; /* Vibrant Orange Background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.travel-card {
+  width: 100%;
+  max-width: 1000px;
+  background-color: #FFFFFF; /* Clean White Card */
+  border-radius: 24px;
+  padding: 30px 40px 50px 40px;
+  box-shadow: 0px 20px 40px rgba(0,0,0,0.15);
+  box-sizing: border-box;
+}
+
+.travel-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.travel-logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: #111111;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.btn-get-started-nav {
+  background-color: #111111;
+  color: #FFFFFF;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.btn-get-started-nav:hover, .btn-action:hover, .btn-explore:hover {
+  opacity: 0.9;
+}
+
+.travel-hero {
+  position: relative;
+  height: 420px;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80');
+  background-size: cover;
+  background-position: center;
+}
+
+.travel-hero-overlay {
+  width: 45%;
+  background-color: rgba(17, 24, 39, 0.92); /* Dark Charcoal Black box */
+  padding: 50px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  color: #FFFFFF;
+}
+
+.hero-heading {
+  font-size: 42px;
+  line-height: 1.2;
+  font-weight: 700;
+  margin: 0 0 15px 0;
+  background-color: rgba(17, 24, 39, 0);
+}
+
+.orange-text {
+  color: #EA6A20; /* Accent orange */
+  background-color: rgba(17, 24, 39, 0);
+}
+
+.hero-subtext {
+  font-size: 15px;
+  background-color: rgba(17, 24, 39, 0);
+  color: #CCCCCC;
+  margin: 0 0 30px 0;
+  font-weight: 300;
+}
+
+.btn-explore {
+  align-self: flex-start;
+  background-color: #EA6A20;
+  color: #FFFFFF;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 25px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bottom-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.btn-action {
+  background-color: #111111;
+  color: #FFFFFF;
+  border: none;
+  padding: 18px 60px;
+  border-radius: 30px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}

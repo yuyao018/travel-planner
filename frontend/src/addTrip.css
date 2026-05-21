@@ -1,0 +1,198 @@
+/* src/addTrip.css */
+
+:root {
+  --orange: #EA6A20;
+  --black: #111111;
+  --white: #FFFFFF;
+  --light-gray: #F8F8F8;
+  --dark-gray: #666666;
+  --border-color: #E0E0E0;
+  --transition: all 0.2s ease-in-out;
+}
+
+.add-trip-container {
+  min-height: 100vh;
+  background-color: var(--light-gray);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  font-family: 'Poppins', sans-serif;
+  position: relative; /* Added for absolute positioning of back button */
+}
+
+.add-trip-card {
+  width: 100%;
+  max-width: 650px;
+  background-color: var(--white);
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.add-trip-card h1 {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--black);
+  margin-bottom: 32px;
+}
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--black);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--white);
+  font-size: 14px;
+  font-family: inherit;
+  transition: var(--transition);
+  outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border: 2px solid var(--orange);
+  padding: 11px; /* Adjust for 2px border to prevent layout shift */
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+/* Preference Tags */
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.tag-pill {
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background-color: var(--white);
+  color: var(--black);
+  transition: var(--transition);
+}
+
+.tag-pill:hover {
+  background-color: var(--light-gray);
+}
+
+.tag-pill.active {
+  background-color: var(--orange);
+  color: var(--white);
+  border-color: var(--orange);
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 40px;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: none;
+  color: var(--black);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.btn-cancel:hover {
+  background-color: #F0F0F0;
+}
+
+.btn-submit {
+  background-color: var(--black);
+  color: var(--white);
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-submit:hover {
+  background-color: var(--orange);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(234, 106, 32, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-group.full-width {
+    grid-column: span 1;
+  }
+  
+  .add-trip-card {
+    padding: 30px 20px;
+  }
+}
+
+.back-home {
+    position: absolute;
+    top: 30px;
+    left: 40px;
+    color: var(--black);
+    text-decoration: none;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    z-index: 1001;
+    transition: var(--transition);
+}
+
+.back-home:hover {
+    color: var(--orange);
+    transform: translateX(-5px);
+}
