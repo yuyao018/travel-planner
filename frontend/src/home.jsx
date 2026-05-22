@@ -11,6 +11,7 @@ function Home({ setCurrentPage, setSelectedTripId }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState(null);
   const [filter, setFilter] = useState('All');
 
   // Fetch trips from backend on mount
@@ -41,11 +42,13 @@ function Home({ setCurrentPage, setSelectedTripId }) {
       if (!selectedTrip) return;
 
       setWeatherLoading(true);
+      setWeatherError(null);
       try {
         const data = await weatherAPI.getWeather(selectedTrip.destination);
         setWeather(data.weather);
       } catch (err) {
         console.error('Weather fetch error:', err.message);
+        setWeatherError(err.message);
         setWeather(null);
       } finally {
         setWeatherLoading(false);
@@ -124,22 +127,22 @@ function Home({ setCurrentPage, setSelectedTripId }) {
 
       <div className="dashboard-content">
         {/* 2. Stat Cards Row */}
-        <div className="stats-grid">
-          <div className="stat-card">
+        <div className="home-stats-grid">
+          <div className="home-stat-card">
             <div className="icon-box amber"><ion-icon name="briefcase"></ion-icon></div>
             <div className="stat-text">
               <span className="stat-label">Total Trips</span>
               <span className="stat-value">{metrics.totalPlannedTrips} Trips</span>
             </div>
           </div>
-          <div className="stat-card">
+          <div className="home-stat-card">
             <div className="icon-box green"><ion-icon name="calendar"></ion-icon></div>
             <div className="stat-text">
               <span className="stat-label">Upcoming</span>
               <span className="stat-value">{metrics.upcomingTrips} Trips</span>
             </div>
           </div>
-          <div className="stat-card">
+          <div className="home-stat-card">
             <div className="icon-box purple"><ion-icon name="earth"></ion-icon></div>
             <div className="stat-text">
               <span className="stat-label">Countries</span>
@@ -153,7 +156,7 @@ function Home({ setCurrentPage, setSelectedTripId }) {
           {/* Left Column: Trip List */}
           <section className="trips-section">
             <div className="trips-header">
-              <h2>Your Itineraries</h2>
+              <h2>All Trips</h2>
               <div className="filter-buttons">
                 {['All', 'Upcoming', 'Ongoing', 'Passed'].map((type) => (
                   <button 
@@ -231,29 +234,46 @@ function Home({ setCurrentPage, setSelectedTripId }) {
                     </div>
                   </div>
                 ) : (
-                  <p>{selectedTrip ? 'Weather data unavailable' : 'Hover over a trip to see weather'}</p>
+                  <p className="weather-error">
+                    {selectedTrip 
+                      ? (weatherError || 'Weather data unavailable') 
+                      : 'Hover over a trip to see weather'}
+                  </p>
                 )}
               </div>
 
               {selectedTrip && (
                 <div className="trip-details-panel">
-                  <h3>Trip Details</h3>
-                  <div className="detail-item">
-                    <span>Budget:</span>
-                    <p>{selectedTrip.currency} {selectedTrip.budget}</p>
+                  <h3 className="details-label">TRIP DETAILS</h3>
+                  
+                  <div className="details-grid">
+                    <div className="detail-block">
+                      <span className="detail-label">TOTAL BUDGET</span>
+                      <p className="detail-value budget-value">
+                        {selectedTrip.currency} {selectedTrip.budget?.toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">ACCOMMODATION</span>
+                      <p className="detail-value">
+                        <ion-icon name="business-outline"></ion-icon> {selectedTrip.hotelLocation || 'Not specified'}
+                      </p>
+                    </div>
+
+                    <div className="detail-block full-width">
+                      <span className="detail-label">TRAVEL PREFERENCES</span>
+                      <div className="preferences-tags">
+                        {selectedTrip.travelPreferences && selectedTrip.travelPreferences.length > 0 ? (
+                          selectedTrip.travelPreferences.map(pref => (
+                            <span key={pref} className={`pref-tag ${pref.toLowerCase()}`}>{pref}</span>
+                          ))
+                        ) : (
+                          <span className="no-prefs">No preferences set</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  {selectedTrip.hotelLocation && (
-                    <div className="detail-item">
-                      <span>Hotel:</span>
-                      <p>{selectedTrip.hotelLocation}</p>
-                    </div>
-                  )}
-                  {selectedTrip.travelPreferences && selectedTrip.travelPreferences.length > 0 && (
-                    <div className="detail-item">
-                      <span>Preferences:</span>
-                      <p>{selectedTrip.travelPreferences.join(', ')}</p>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

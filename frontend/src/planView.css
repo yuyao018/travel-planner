@@ -21,6 +21,42 @@
   margin: 0;
 }
 
+/* Loading Screen */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-warm-grey);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--orange-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loading-screen p {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Hero Banner */
 .hero-banner {
   background-color: var(--dark-banner);
@@ -85,14 +121,14 @@
 }
 
 /* Stat Cards */
-.stats-grid {
+.plan-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 40px;
 }
 
-.stat-card {
+.plan-stat-card {
   background: var(--white);
   border: 0.5px solid var(--border-subtle);
   border-radius: 12px;
@@ -481,66 +517,128 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
+  padding-right: 8px;
 }
 
 .budget-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px;
+  gap: 16px;
+  padding: 16px;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  position: relative;
+  border-radius: 12px;
 }
 
-.budget-top {
+.budget-item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
-  font-weight: 700;
+  width: 100%;
 }
 
-.cat-label {
-  background: #f3f4f6;
-  padding: 3px 8px;
+.budget-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.metadata-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.item-metadata {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+
+.item-metadata:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.expense-notes-tag {
+  color: #888888;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
+  padding-left: 8px;
+}
+
+.exchange-rate-tag {
+  background: #f4f6fa;
+  padding: 4px 8px;
   border-radius: 4px;
+  color: #5c6b89;
   font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.budget-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .amount {
+  font-size: 16px;
   font-weight: 800;
   color: var(--black);
 }
 
-.expense-notes {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin: 0;
+.cat-label {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.btn-delete-expense {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+/* Category Specific Colors */
+.cat-label.food { background: #F1F8E9; color: #558B2F; }
+.cat-label.transport { background: #E8EAF6; color: #3949AB; }
+.cat-label.shopping { background: #FCE4EC; color: #C2185B; }
+.cat-label.activities { background: #FFF3E0; color: #E65100; }
+.cat-label.hotel { background: #E3F2FD; color: #1E88E5; }
+.cat-label.other { background: #F3E5F5; color: #7B1FA2; }
+
+.btn-delete-expense-red {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
-  color: #9ca3af;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: color 0.2s, background 0.2s;
+  font-size: 18px;
+  color: #ef4444;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
 }
 
-.btn-delete-expense:hover {
-  color: #ef4444;
+.btn-delete-expense-red:hover {
   background: rgba(239, 68, 68, 0.1);
+  transform: scale(1.1);
 }
 
 .empty-expenses {
@@ -923,7 +1021,7 @@
     grid-template-columns: 1fr;
   }
 
-  .stats-grid {
+  .plan-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 

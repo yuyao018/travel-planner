@@ -23,6 +23,9 @@ async function getWeather(city) {
     if (response.status === 404) {
       throw new Error(`City "${city}" not found.`);
     }
+    if (response.status === 401) {
+      throw new Error('Invalid Weather API key. Please check your .env configuration.');
+    }
     throw new Error(`Weather API returned status ${response.status}`);
   }
 

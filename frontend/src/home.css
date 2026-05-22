@@ -81,14 +81,15 @@
 }
 
 /* Stat Cards */
-.stats-grid {
+.home-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
   margin-bottom: 40px;
+  width: 100%;
 }
 
-.stat-card {
+.home-stat-card {
   background: var(--white);
   border: 0.5px solid var(--border-subtle);
   border-radius: 12px;
@@ -285,30 +286,92 @@
   margin-top: 2px;
 }
 
-.attractions-panel h3 {
-  font-size: 16px;
+.trip-details-panel {
+  padding: 0;
+  margin-top: 24px;
+}
+
+.details-label {
+  font-size: 12px;
   font-weight: 800;
+  color: #888888;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   margin-bottom: 16px;
 }
 
-.attraction-item {
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.detail-block {
+  background: var(--light-grey-card);
+  border-radius: 12px;
+  padding: 16px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 0.5px solid var(--border-subtle);
+  flex-direction: column;
+  gap: 6px;
 }
 
-.attraction-item:last-child { border-bottom: none; }
+.detail-block.full-width {
+  grid-column: 1 / -1;
+}
 
-.attraction-name {
+.detail-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--black);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.rating-stars {
+.budget-value {
   color: var(--orange-accent);
+}
+
+.preferences-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pref-tag {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  transition: var(--transition);
+}
+
+/* Preference Specific Colors */
+.pref-tag.shopping { background: #FCE4EC; color: #C2185B; }
+.pref-tag.food { background: #F1F8E9; color: #558B2F; }
+.pref-tag.scenery { background: #E3F2FD; color: #1E88E5; }
+.pref-tag.adventure { background: #E0F2F1; color: #00695C; }
+.pref-tag.culture { background: #FFF8E1; color: #F57F17; }
+
+.pref-tag:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.no-prefs {
   font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .nav-right {
@@ -339,15 +402,16 @@
 }
 
 @media (max-width: 1100px) {
+  .dashboard-content { padding: 30px 40px; }
   .dashboard-grid { grid-template-columns: 1fr; }
   .preview-panel { position: static; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .home-stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
     .home-hero { padding: 30px; flex-direction: column; gap: 20px; align-items: flex-start; }
     .dashboard-content { padding: 20px; }
-    .stats-grid { grid-template-columns: 1fr; }
+    .home-stats-grid { grid-template-columns: 1fr; }
 }
 
 /* Trip card actions */

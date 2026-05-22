@@ -43,6 +43,7 @@ router.post('/', async (req, res) => {
     const expenseCurrency = currency || trip.currency || 'USD';
     let convertedAmount = amount;
     let conversionRate = 1;
+    let conversionWarning = null;
 
     if (expenseCurrency !== trip.currency) {
       try {
@@ -50,8 +51,8 @@ router.post('/', async (req, res) => {
         convertedAmount = conversion.convertedAmount;
         conversionRate = conversion.rate;
       } catch (convErr) {
-        console.error('Currency conversion failed, storing original amount:', convErr.message);
-        // Fallback: store original amount if conversion fails
+        console.error('Currency conversion failed:', convErr.message);
+        conversionWarning = `Currency conversion failed: ${convErr.message}. Stored original amount as fallback.`;
         convertedAmount = amount;
       }
     }
@@ -72,7 +73,8 @@ router.post('/', async (req, res) => {
     const result = await expensesCollection.insertOne(newExpense);
 
     res.status(201).json({
-      message: 'Expense added successfully.',
+      message: conversionWarning || 'Expense added successfully.',
+      warning: conversionWarning,
       expense: { ...newExpense, _id: result.insertedId },
     });
   } catch (error) {

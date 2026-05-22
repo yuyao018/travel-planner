@@ -36,13 +36,15 @@ router.get('/:city', async (req, res) => {
       return res.status(400).json({ message: 'City name is too long.' });
     }
 
-    // Only allow letters, spaces, hyphens, and common characters in city names
-    const cityRegex = /^[a-zA-Z\s\-'.]+$/;
-    if (!cityRegex.test(city.trim())) {
-      return res.status(400).json({ message: 'Invalid city name format.' });
+    // Basic sanitization: remove any potential control characters or common injection symbols
+    // but allow most characters for international city name support.
+    const sanitizedCity = city.trim().replace(/[<>;"%]/g, '');
+
+    if (sanitizedCity.length === 0) {
+      return res.status(400).json({ message: 'City name is required.' });
     }
 
-    const weatherData = await getWeather(city.trim());
+    const weatherData = await getWeather(sanitizedCity);
 
     res.status(200).json({ weather: weatherData });
   } catch (error) {
@@ -52,8 +54,8 @@ router.get('/:city', async (req, res) => {
       return res.status(404).json({ message: error.message });
     }
 
-    if (error.message.includes('not configured')) {
-      return res.status(503).json({ message: 'Weather service is not configured.' });
+    if (error.message.includes('not configured') || error.message.includes('Invalid Weather API key')) {
+      return res.status(503).json({ message: 'Weather service is currently unavailable due to configuration issues.' });
     }
 
     res.status(500).json({ message: 'Failed to fetch weather data.' });

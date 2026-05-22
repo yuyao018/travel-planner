@@ -301,8 +301,9 @@ function PlanView({ tripId, setCurrentPage }) {
 
   if (isLoading) {
     return (
-      <div className="plan-container">
-        <div className="fallback-state">Loading Itinerary...</div>
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Loading your adventure...</p>
       </div>
     );
   }
@@ -350,22 +351,22 @@ function PlanView({ tripId, setCurrentPage }) {
 
       <div className="plan-content">
         {/* 2. Stat Cards */}
-        <div className="stats-grid">
-          <div className="stat-card">
+        <div className="plan-stats-grid">
+          <div className="plan-stat-card">
             <div className="icon-box amber"><ion-icon name="calendar"></ion-icon></div>
             <div className="stat-text">
               <span className="stat-label">Duration</span>
               <span className="stat-value">{tripDuration} Days</span>
             </div>
           </div>
-          <div className="stat-card">
+          <div className="plan-stat-card">
             <div className="icon-box green"><ion-icon name="list"></ion-icon></div>
             <div className="stat-text">
               <span className="stat-label">Activities</span>
               <span className="stat-value">{stops.length} Stops</span>
             </div>
           </div>
-          <div className="stat-card">
+          <div className="plan-stat-card">
             <div className="icon-box purple"><ion-icon name="wallet"></ion-icon></div>
             <div className="stat-text">
               <span className="stat-label">Budget</span>
@@ -373,7 +374,7 @@ function PlanView({ tripId, setCurrentPage }) {
               <span className="stat-subtitle">{trip.currency} {budgetSpent.toFixed(2)} spent</span>
             </div>
           </div>
-          <div className="stat-card">
+          <div className="plan-stat-card">
             <div className="icon-box blue"><ion-icon name="business"></ion-icon></div>
             <div className="stat-text">
               <span className="stat-label">Hotel</span>
@@ -682,24 +683,41 @@ function PlanView({ tripId, setCurrentPage }) {
               <h3>Expenses</h3>
               <div className="budget-list">
                 {expenses.length > 0 ? (
-                  expenses.map((expense) => (
-                    <div key={expense._id} className="budget-item">
-                      <div className="budget-top">
-                        <span className="cat-label">{expense.category}</span>
-                        <span className="amount">{trip.currency} {expense.convertedAmount?.toFixed(2)}</span>
+                  Object.values(expenses.reduce((acc, curr) => {
+                    const cat = curr.category || 'Other';
+                    if (!acc[cat]) {
+                      acc[cat] = { category: cat, totalAmount: 0, items: [] };
+                    }
+                    acc[cat].totalAmount += curr.convertedAmount || 0;
+                    acc[cat].items.push(curr);
+                    return acc;
+                  }, {})).map((group) => (
+                    <div key={group.category} className="budget-item">
+                      <div className="budget-item-header">
+                        <span className={`cat-label ${group.category.toLowerCase()}`}>{group.category}</span>
+                        <span className="amount">{trip.currency} {group.totalAmount.toFixed(2)}</span>
                       </div>
-                      {expense.originalCurrency && expense.originalCurrency !== expense.baseCurrency && (
-                        <p className="expense-conversion">
-                          Originally: {expense.originalCurrency} {expense.amount?.toFixed(2)} (rate: {expense.conversionRate?.toFixed(4)})
-                        </p>
-                      )}
-                      {expense.notes && <p className="expense-notes">{expense.notes}</p>}
-                      <button 
-                        className="btn-delete-expense"
-                        onClick={() => handleDeleteExpense(expense._id)}
-                      >
-                        ✕
-                      </button>
+                      <div className="metadata-stack">
+                        {group.items.map((item) => (
+                          <div key={item._id} className="item-metadata">
+                            <div className="item-details">
+                              {item.notes && <span className="expense-notes-tag">{item.notes}</span>}
+                              {item.originalCurrency && item.originalCurrency !== item.baseCurrency && (
+                                <div className="exchange-rate-tag">
+                                  Originally: {item.originalCurrency} {item.amount?.toFixed(2)} (rate: {item.conversionRate?.toFixed(4)})
+                                </div>
+                              )}
+                            </div>
+                            <button 
+                              className="btn-delete-expense-red"
+                              onClick={() => handleDeleteExpense(item._id)}
+                              title="Delete this expense"
+                            >
+                              <ion-icon name="trash-outline"></ion-icon>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))
                 ) : (
