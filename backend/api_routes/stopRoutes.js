@@ -43,6 +43,8 @@ router.post('/trips/:tripId/stops', async (req, res) => {
       duration,
       notes,
       order,
+      lat,
+      lng,
     } = req.body;
 
     if (!activityTitle || !day) {
@@ -60,6 +62,8 @@ router.post('/trips/:tripId/stops', async (req, res) => {
       duration: duration || null,
       notes: notes || '',
       order: order || 0,
+      lat: lat || null,
+      lng: lng || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -139,7 +143,7 @@ router.put('/stops/:id', async (req, res) => {
       return res.status(404).json({ message: 'Stop not found.' });
     }
 
-    const allowedFields = ['day', 'time', 'activityTitle', 'location', 'category', 'duration', 'notes', 'order'];
+    const allowedFields = ['day', 'time', 'activityTitle', 'location', 'category', 'duration', 'notes', 'order', 'lat', 'lng'];
     const updateData = {};
 
     for (const field of allowedFields) {

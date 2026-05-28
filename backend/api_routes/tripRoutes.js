@@ -26,9 +26,15 @@ router.post('/', async (req, res) => {
       departureTime,
       arrivalAirport,
       departureAirport,
+      arrivalAirportLat,
+      arrivalAirportLng,
+      departureAirportLat,
+      departureAirportLng,
       hotelCheckIn,
       hotelCheckOut,
       hotelLocation,
+      hotelLat,
+      hotelLng,
       travelPreferences,
       notes,
     } = req.body;
@@ -53,9 +59,15 @@ router.post('/', async (req, res) => {
       departureTime: departureTime || null,
       arrivalAirport: arrivalAirport || null,
       departureAirport: departureAirport || null,
+      arrivalAirportLat: arrivalAirportLat || null,
+      arrivalAirportLng: arrivalAirportLng || null,
+      departureAirportLat: departureAirportLat || null,
+      departureAirportLng: departureAirportLng || null,
       hotelCheckIn: hotelCheckIn || null,
       hotelCheckOut: hotelCheckOut || null,
       hotelLocation: hotelLocation || null,
+      hotelLat: hotelLat || null,
+      hotelLng: hotelLng || null,
       travelPreferences: travelPreferences || [],
       notes: notes || '',
       createdAt: new Date(),
@@ -160,7 +172,9 @@ router.put('/:id', async (req, res) => {
     const allowedFields = [
       'destination', 'tripName', 'startDate', 'endDate', 'budget', 'currency',
       'arrivalTime', 'departureTime', 'arrivalAirport', 'departureAirport',
-      'hotelCheckIn', 'hotelCheckOut', 'hotelLocation', 'travelPreferences', 'notes',
+      'arrivalAirportLat', 'arrivalAirportLng', 'departureAirportLat', 'departureAirportLng',
+      'hotelCheckIn', 'hotelCheckOut', 'hotelLocation', 'hotelLat', 'hotelLng',
+      'travelPreferences', 'notes',
     ];
 
     const updateData = {};

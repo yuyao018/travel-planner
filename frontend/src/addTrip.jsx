@@ -50,7 +50,6 @@ function AddTrip({ setCurrentPage }) {
     e.preventDefault();
     setError('');
 
-    // Validation: End Date cannot be before Start Date
     if (new Date(formData.endDate) < new Date(formData.startDate)) {
       setError('End Date cannot be earlier than Start Date.');
       return;
@@ -59,13 +58,50 @@ function AddTrip({ setCurrentPage }) {
     setIsSubmitting(true);
 
     try {
+      const updatedFormData = { ...formData };
+
+      // Geocode Arrival Airport
+      if (formData.arrivalAirport) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.arrivalAirport + ', ' + formData.destination)}&limit=1`, { headers: { 'User-Agent': 'SmartTravelPlanner/1.0' } });
+          const data = await res.json();
+          if (data && data.length > 0) {
+            updatedFormData.arrivalAirportLat = parseFloat(data[0].lat);
+            updatedFormData.arrivalAirportLng = parseFloat(data[0].lon);
+          }
+        } catch (err) { console.warn('Geocoding arrival airport failed:', err); }
+      }
+
+      // Geocode Departure Airport
+      if (formData.departureAirport) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.departureAirport + ', ' + formData.destination)}&limit=1`, { headers: { 'User-Agent': 'SmartTravelPlanner/1.0' } });
+          const data = await res.json();
+          if (data && data.length > 0) {
+            updatedFormData.departureAirportLat = parseFloat(data[0].lat);
+            updatedFormData.departureAirportLng = parseFloat(data[0].lon);
+          }
+        } catch (err) { console.warn('Geocoding departure airport failed:', err); }
+      }
+
+      // Geocode Hotel Location
+      if (formData.hotelLocation) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.hotelLocation + ', ' + formData.destination)}&limit=1`, { headers: { 'User-Agent': 'SmartTravelPlanner/1.0' } });
+          const data = await res.json();
+          if (data && data.length > 0) {
+            updatedFormData.hotelLat = parseFloat(data[0].lat);
+            updatedFormData.hotelLng = parseFloat(data[0].lon);
+          }
+        } catch (err) { console.warn('Geocoding hotel location failed:', err); }
+      }
+
       // Submit to backend API
       await tripsAPI.create({
-        ...formData,
+        ...updatedFormData,
         budget: parseFloat(formData.budget) || 0,
       });
 
-      // Navigate back to dashboard
       setCurrentPage('home');
     } catch (err) {
       setError(err.message || 'Failed to create trip. Please try again.');

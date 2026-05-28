@@ -32,10 +32,18 @@ class AIService {
 
     for (const modelName of modelNames) {
       try {
-        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const model = this.genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: {
+            temperature: 0.2, // Lower temperature for more consistent, logical routes
+            topP: 0.8,
+            topK: 40,
+          }
+        });
 
         const prompt = `
-          You are a professional travel planner. Create a detailed daily itinerary for a trip to ${trip.destination}.
+          You are a professional travel planner specializing in geographic clustering and route optimization.
+          Create a detailed daily itinerary for a trip to ${trip.destination}.
           
           Trip Details:
           - Duration: ${durationDays} days
@@ -43,20 +51,26 @@ class AIService {
           - Preferences: ${trip.travelPreferences.join(', ') || 'General sightseeing'}
           - Notes: ${trip.notes || 'None'}
           
+          STRICT ROUTE OPTIMIZATION RULES:
+          1. GEOGRAPHIC CLUSTERING: Each day MUST focus on one specific, localized neighborhood or area of ${trip.destination}. Do NOT jump across the city in a single day.
+          2. LOGICAL FLOW: Arrange activities in a chronological order that minimizes travel time. Start at one end of the area and move logically to the next.
+          3. REALISM: Ensure travel times between activities within the cluster are realistic (e.g., 10-20 mins walking or short transit).
+          4. VARIETY: While clustered, ensure a mix of food, sightseeing, and relaxation.
+
           Output the itinerary as a JSON array of "stop" objects. 
           Each "stop" object MUST follow this strict format:
           {
             "day": number (1 to ${durationDays}),
             "time": "HH:mm" (24-hour format),
             "activityTitle": "string",
-            "location": "string",
+            "location": "string (specific name or address)",
             "category": "Food" | "Sightseeing" | "Logistics" | "Shopping" | "Transport" | "Adventure" | "Culture" | "General",
             "duration": "string (e.g., 2h, 45m)",
-            "notes": "string",
+            "notes": "string (include why this fits in the area cluster)",
             "order": number (sequential within the day)
           }
           
-          Provide at least 3-5 activities per day. Ensure the activities are realistic for ${trip.destination}.
+          Provide at least 3-5 activities per day. 
           ONLY return the JSON array, no other text.
         `;
 

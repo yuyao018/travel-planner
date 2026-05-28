@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './planView.css';
 import { tripsAPI, stopsAPI, budgetAPI, weatherAPI, placesAPI, aiAPI } from './services/api';
+import RouteMap from './components/RouteMap';
 
 const CATEGORY_OPTIONS = ['Food', 'Sightseeing', 'Logistics', 'Shopping', 'Transport', 'Adventure', 'Culture', 'General'];
 
@@ -170,7 +171,29 @@ function PlanView({ tripId, setCurrentPage }) {
     setSavingStop(true);
 
     try {
-      // Construct duration string
+      // 1. Geocode the location if it's new/changed to get lat/lng
+      let lat = editingStop?.lat || null;
+      let lng = editingStop?.lng || null;
+
+      // If location changed or is new, geocode it
+      if (!editingStop || editingStop.location !== stopForm.location) {
+        try {
+          const query = `${stopForm.location || stopForm.activityTitle}, ${trip.destination}`;
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+            { headers: { 'User-Agent': 'SmartTravelPlanner/1.0' } }
+          );
+          const data = await response.json();
+          if (data && data.length > 0) {
+            lat = parseFloat(data[0].lat);
+            lng = parseFloat(data[0].lon);
+          }
+        } catch (err) {
+          console.warn('Geocoding during save failed:', err);
+        }
+      }
+
+      // 2. Construct duration string
       let duration = '';
       if (parseInt(stopForm.durationHours) > 0) duration += `${stopForm.durationHours}h `;
       if (parseInt(stopForm.durationMinutes) > 0) duration += `${stopForm.durationMinutes}m`;
@@ -179,6 +202,8 @@ function PlanView({ tripId, setCurrentPage }) {
       const finalStopData = {
         ...stopForm,
         duration,
+        lat,
+        lng,
         day: parseInt(stopForm.day),
       };
 
@@ -310,6 +335,8 @@ function PlanView({ tripId, setCurrentPage }) {
         category: mapPlaceCategory(place.categories),
         duration: '',
         notes: place.rating ? `Rating: ${place.rating}/5` : '',
+        lat: place.lat || null,
+        lng: place.lng || null,
       });
 
       // Refresh stops
@@ -523,6 +550,12 @@ function PlanView({ tripId, setCurrentPage }) {
                 </div>
               )}
             </div>
+
+            {/* Route Map */}
+            <RouteMap 
+              stops={stopsByDay[activeDay] || []} 
+              destination={trip.destination} 
+            />
 
             {/* Add/Edit Stop Form */}
             {showStopForm && (

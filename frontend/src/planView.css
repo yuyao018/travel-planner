@@ -356,6 +356,37 @@
   animation: spin 2s linear infinite;
 }
 
+/* Route Map Styles */
+.route-map-container {
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  background: #eee;
+}
+
+.map-loading-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  color: var(--orange-accent);
+}
+
+.custom-map-marker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.leaflet-container {
+  font-family: 'Poppins', sans-serif;
+}
+
 .stop-footer {
   margin-top: 15px;
   padding-top: 15px;

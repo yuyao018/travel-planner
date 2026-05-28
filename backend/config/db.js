@@ -10,7 +10,10 @@ async function connectDB() {
     const uri = process.env.MONGO_URI;
 
     console.log("Attempting database connection pool instantiation...");
-    client = new MongoClient(uri);
+    client = new MongoClient(uri, {
+      tls: true,
+      tlsAllowInvalidCertificates: true
+    });
 
     await client.connect();
     db = client.db('travel_app');
