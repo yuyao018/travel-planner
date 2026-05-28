@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './planView.css';
-import { tripsAPI, stopsAPI, budgetAPI, weatherAPI, placesAPI } from './services/api';
+import { tripsAPI, stopsAPI, budgetAPI, weatherAPI, placesAPI, aiAPI } from './services/api';
 
 const CATEGORY_OPTIONS = ['Food', 'Sightseeing', 'Logistics', 'Shopping', 'Transport', 'Adventure', 'Culture', 'General'];
 
@@ -23,7 +23,8 @@ function PlanView({ tripId, setCurrentPage }) {
     activityTitle: '',
     location: '',
     category: 'General',
-    duration: '',
+    durationHours: '0',
+    durationMinutes: '30',
     notes: '',
   });
   const [savingStop, setSavingStop] = useState(false);
@@ -37,6 +38,7 @@ function PlanView({ tripId, setCurrentPage }) {
   const [placesResults, setPlacesResults] = useState([]);
   const [placesLoading, setPlacesLoading] = useState(false);
   const [placesError, setPlacesError] = useState('');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   // Ref for scrolling to timeline after adding a place
   const timelineRef = useRef(null);
@@ -71,13 +73,28 @@ function PlanView({ tripId, setCurrentPage }) {
     if (tripId) fetchData();
   }, [tripId]);
 
-  // Group stops by day
+  // Group stops by day and ensure they are sorted by time
   const stopsByDay = stops.reduce((acc, stop) => {
     const day = stop.day || 1;
     if (!acc[day]) acc[day] = [];
     acc[day].push(stop);
     return acc;
   }, {});
+
+  // Sort stops within each day chronologically
+  Object.keys(stopsByDay).forEach(day => {
+    stopsByDay[day].sort((a, b) => {
+      // If time is missing, treat it as very late (or very early, but usually better at the end)
+      const timeA = a.time || '99:99';
+      const timeB = b.time || '99:99';
+      
+      if (timeA < timeB) return -1;
+      if (timeA > timeB) return 1;
+      
+      // If times are equal, use the order field
+      return (a.order || 0) - (b.order || 0);
+    });
+  });
 
   // Calculate trip duration
   const getTripDuration = () => {
@@ -97,6 +114,21 @@ function PlanView({ tripId, setCurrentPage }) {
 
   // ─── Stop Handlers ─────────────────────────────────────────────────────────
 
+  const parseDuration = (durationStr) => {
+    if (!durationStr) return { hours: '0', minutes: '30' };
+    
+    let hours = '0';
+    let minutes = '0';
+    
+    const hourMatch = durationStr.match(/(\d+)h/);
+    const minuteMatch = durationStr.match(/(\d+)m/);
+    
+    if (hourMatch) hours = hourMatch[1];
+    if (minuteMatch) minutes = minuteMatch[1];
+    
+    return { hours, minutes };
+  };
+
   const openAddStopForm = () => {
     setEditingStop(null);
     setStopForm({
@@ -105,13 +137,15 @@ function PlanView({ tripId, setCurrentPage }) {
       activityTitle: '',
       location: '',
       category: 'General',
-      duration: '',
+      durationHours: '0',
+      durationMinutes: '30',
       notes: '',
     });
     setShowStopForm(true);
   };
 
   const openEditStopForm = (stop) => {
+    const { hours, minutes } = parseDuration(stop.duration);
     setEditingStop(stop);
     setStopForm({
       day: stop.day || 1,
@@ -119,7 +153,8 @@ function PlanView({ tripId, setCurrentPage }) {
       activityTitle: stop.activityTitle || '',
       location: stop.location || '',
       category: stop.category || 'General',
-      duration: stop.duration || '',
+      durationHours: hours,
+      durationMinutes: minutes,
       notes: stop.notes || '',
     });
     setShowStopForm(true);
@@ -135,15 +170,24 @@ function PlanView({ tripId, setCurrentPage }) {
     setSavingStop(true);
 
     try {
+      // Construct duration string
+      let duration = '';
+      if (parseInt(stopForm.durationHours) > 0) duration += `${stopForm.durationHours}h `;
+      if (parseInt(stopForm.durationMinutes) > 0) duration += `${stopForm.durationMinutes}m`;
+      duration = duration.trim();
+
+      const finalStopData = {
+        ...stopForm,
+        duration,
+        day: parseInt(stopForm.day),
+      };
+
       if (editingStop) {
         // Update existing stop
-        await stopsAPI.update(editingStop._id, stopForm);
+        await stopsAPI.update(editingStop._id, finalStopData);
       } else {
         // Create new stop
-        await stopsAPI.create(tripId, {
-          ...stopForm,
-          day: parseInt(stopForm.day),
-        });
+        await stopsAPI.create(tripId, finalStopData);
       }
 
       // Refresh stops
@@ -299,6 +343,26 @@ function PlanView({ tripId, setCurrentPage }) {
     return 'Sightseeing';
   };
 
+  const handleGenerateAI = async () => {
+    if (!window.confirm('This will replace your current itinerary with an AI-generated one. Continue?')) {
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      await aiAPI.generateItinerary(tripId);
+      // Refresh stops
+      const stopsData = await stopsAPI.getAll(tripId);
+      setStops(stopsData.stops || []);
+      alert('AI Itinerary generated successfully!');
+    } catch (err) {
+      console.error('AI Generation error:', err.message);
+      alert('Failed to generate itinerary: ' + err.message);
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="loading-screen">
@@ -336,6 +400,12 @@ function PlanView({ tripId, setCurrentPage }) {
             <span><ion-icon name="calendar-outline"></ion-icon> {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</span>
             <span><ion-icon name="moon-outline"></ion-icon> {tripDuration} Days</span>
             <span><ion-icon name="wallet-outline"></ion-icon> {trip.currency} {trip.budget}</span>
+            {(trip.arrivalAirport || trip.departureAirport) && (
+              <span>
+                <ion-icon name="airplane-outline"></ion-icon> 
+                {trip.arrivalAirport || '???'} → {trip.departureAirport || '???'}
+              </span>
+            )}
           </div>
         </div>
         <div className="hero-right">
@@ -399,9 +469,15 @@ function PlanView({ tripId, setCurrentPage }) {
                   </div>
                 ))}
               </div>
-              <button className="btn-add-stop" onClick={openAddStopForm}>
-                <ion-icon name="add-circle-outline"></ion-icon> Add Stop
-              </button>
+              <div className="itinerary-actions">
+                <button className="btn-ai-generate" onClick={handleGenerateAI} disabled={isGeneratingAI}>
+                  <ion-icon name={isGeneratingAI ? 'sync-outline' : 'sparkles-outline'} className={isGeneratingAI ? 'rotating' : ''}></ion-icon>
+                  {isGeneratingAI ? 'Generating...' : 'AI Generate'}
+                </button>
+                <button className="btn-add-stop" onClick={openAddStopForm}>
+                  <ion-icon name="add-circle-outline"></ion-icon> Add Stop
+                </button>
+              </div>
             </div>
 
             {/* Discover Nearby Places (Google Places via SerpAPI) */}
@@ -508,13 +584,30 @@ function PlanView({ tripId, setCurrentPage }) {
 
                     <div className="stop-form-group">
                       <label>Duration</label>
-                      <input
-                        type="text"
-                        name="duration"
-                        placeholder="e.g., 2h, 45m"
-                        value={stopForm.duration}
-                        onChange={handleStopFormChange}
-                      />
+                      <div className="duration-selectors">
+                        <div className="duration-select-wrapper">
+                          <select 
+                            name="durationHours" 
+                            value={stopForm.durationHours} 
+                            onChange={handleStopFormChange}
+                          >
+                            {[...Array(24).keys()].map(h => (
+                              <option key={h} value={h}>{h}h</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="duration-select-wrapper">
+                          <select 
+                            name="durationMinutes" 
+                            value={stopForm.durationMinutes} 
+                            onChange={handleStopFormChange}
+                          >
+                            {[0, 15, 30, 45].map(m => (
+                              <option key={m} value={m}>{m}m</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="stop-form-group full-width">
@@ -578,15 +671,17 @@ function PlanView({ tripId, setCurrentPage }) {
                           </div>
                         </div>
                         <div className="stop-footer">
-                          <span className={`tag ${(stop.category || 'general').toLowerCase()}`}>{stop.category || 'General'}</span>
-                          {stop.duration && (
-                            <span className="duration">
-                              <ion-icon name="time-outline"></ion-icon> {stop.duration}
-                            </span>
-                          )}
-                          {stop.notes && (
-                            <span className="stop-notes">{stop.notes}</span>
-                          )}
+                          <div className="stop-footer-left">
+                            <span className={`tag ${(stop.category || 'general').toLowerCase()}`}>{stop.category || 'General'}</span>
+                            {stop.duration && (
+                              <span className="duration">
+                                <ion-icon name="time-outline"></ion-icon> {stop.duration}
+                              </span>
+                            )}
+                            {stop.notes && (
+                              <span className="stop-notes">{stop.notes}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

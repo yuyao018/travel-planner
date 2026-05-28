@@ -175,3 +175,12 @@ export const routingAPI = {
       body: JSON.stringify({ waypoints, profile }),
     }),
 };
+
+// ─── AI (Gemini) API ─────────────────────────────────────────────────────────
+
+export const aiAPI = {
+  generateItinerary: (tripId) =>
+    request(`/ai/${tripId}/generate-ai`, {
+      method: 'POST',
+    }),
+};

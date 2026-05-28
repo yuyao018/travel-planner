@@ -14,6 +14,8 @@ function AddTrip({ setCurrentPage }) {
     currency: 'USD',
     arrivalTime: '',
     departureTime: '',
+    arrivalAirport: '',
+    departureAirport: '',
     hotelLocation: '',
     hotelCheckIn: '',
     hotelCheckOut: '',
@@ -183,12 +185,34 @@ function AddTrip({ setCurrentPage }) {
                 />
               </div>
               <div className="form-group">
+                <label htmlFor="arrivalAirport">Arrival Airport</label>
+                <input
+                  type="text"
+                  id="arrivalAirport"
+                  name="arrivalAirport"
+                  placeholder="e.g., NRT"
+                  value={formData.arrivalAirport}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="form-group">
                 <label htmlFor="departureTime">Departure Time</label>
                 <input
                   type="time"
                   id="departureTime"
                   name="departureTime"
                   value={formData.departureTime}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="departureAirport">Departure Airport</label>
+                <input
+                  type="text"
+                  id="departureAirport"
+                  name="departureAirport"
+                  placeholder="e.g., HND"
+                  value={formData.departureAirport}
                   onChange={handleInputChange}
                 />
               </div>

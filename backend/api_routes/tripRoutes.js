@@ -24,6 +24,8 @@ router.post('/', async (req, res) => {
       currency,
       arrivalTime,
       departureTime,
+      arrivalAirport,
+      departureAirport,
       hotelCheckIn,
       hotelCheckOut,
       hotelLocation,
@@ -49,6 +51,8 @@ router.post('/', async (req, res) => {
       currency: currency || 'USD',
       arrivalTime: arrivalTime || null,
       departureTime: departureTime || null,
+      arrivalAirport: arrivalAirport || null,
+      departureAirport: departureAirport || null,
       hotelCheckIn: hotelCheckIn || null,
       hotelCheckOut: hotelCheckOut || null,
       hotelLocation: hotelLocation || null,
@@ -155,8 +159,8 @@ router.put('/:id', async (req, res) => {
     // Build update object from allowed fields
     const allowedFields = [
       'destination', 'tripName', 'startDate', 'endDate', 'budget', 'currency',
-      'arrivalTime', 'departureTime', 'hotelCheckIn', 'hotelCheckOut',
-      'hotelLocation', 'travelPreferences', 'notes',
+      'arrivalTime', 'departureTime', 'arrivalAirport', 'departureAirport',
+      'hotelCheckIn', 'hotelCheckOut', 'hotelLocation', 'travelPreferences', 'notes',
     ];
 
     const updateData = {};

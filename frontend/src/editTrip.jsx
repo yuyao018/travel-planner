@@ -14,6 +14,8 @@ function EditTrip({ setCurrentPage, tripId }) {
     currency: 'USD',
     arrivalTime: '',
     departureTime: '',
+    arrivalAirport: '',
+    departureAirport: '',
     hotelLocation: '',
     hotelCheckIn: '',
     hotelCheckOut: '',
@@ -41,6 +43,8 @@ function EditTrip({ setCurrentPage, tripId }) {
           currency: trip.currency || 'USD',
           arrivalTime: trip.arrivalTime || '',
           departureTime: trip.departureTime || '',
+          arrivalAirport: trip.arrivalAirport || '',
+          departureAirport: trip.departureAirport || '',
           hotelLocation: trip.hotelLocation || '',
           hotelCheckIn: trip.hotelCheckIn || '',
           hotelCheckOut: trip.hotelCheckOut || '',
@@ -242,12 +246,34 @@ function EditTrip({ setCurrentPage, tripId }) {
                 />
               </div>
               <div className="form-group">
+                <label htmlFor="arrivalAirport">Arrival Airport</label>
+                <input
+                  type="text"
+                  id="arrivalAirport"
+                  name="arrivalAirport"
+                  placeholder="e.g., NRT"
+                  value={formData.arrivalAirport}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="form-group">
                 <label htmlFor="departureTime">Departure Time</label>
                 <input
                   type="time"
                   id="departureTime"
                   name="departureTime"
                   value={formData.departureTime}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="departureAirport">Departure Airport</label>
+                <input
+                  type="text"
+                  id="departureAirport"
+                  name="departureAirport"
+                  placeholder="e.g., HND"
+                  value={formData.departureAirport}
                   onChange={handleInputChange}
                 />
               </div>

@@ -104,7 +104,7 @@ router.get('/trips/:tripId/stops', async (req, res) => {
 
     const stops = await stopsCollection
       .find({ tripId: new ObjectId(tripId) })
-      .sort({ day: 1, order: 1 })
+      .sort({ day: 1, time: 1, order: 1 })
       .toArray();
 
     res.status(200).json({ stops });

@@ -16,6 +16,7 @@ const budgetRoutes = require('./api_routes/budgetRoutes');
 const weatherRoutes = require('./api_routes/weatherRoutes');
 const routingRoutes = require('./api_routes/routingRoutes');
 const placesRoutes = require('./api_routes/placesRoutes');
+const aiRoutes = require('./api_routes/aiRoutes');
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use('/api/budget', budgetRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/routing', routingRoutes);
 app.use('/api/places', placesRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check (public)
 app.get('/api/health', (req, res) => {

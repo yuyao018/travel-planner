@@ -320,13 +320,62 @@
   gap: 4px;
 }
 
-.stop-footer {
+.itinerary-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 15px;
   align-items: center;
+}
+
+.btn-ai-generate {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-ai-generate:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-ai-generate:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.rotating {
+  animation: spin 2s linear infinite;
+}
+
+.stop-footer {
   margin-top: 15px;
   padding-top: 15px;
   border-top: 0.5px solid var(--border-subtle);
+}
+
+.stop-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stop-notes {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 200px;
 }
 
 .tag {
@@ -353,6 +402,36 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Duration Selectors */
+.duration-selectors {
+  display: flex;
+  gap: 10px;
+}
+
+.duration-select-wrapper {
+  flex: 1;
+}
+
+.duration-select-wrapper select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: var(--white);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+.duration-select-wrapper select:focus {
+  outline: none;
+  border-color: var(--orange-accent);
 }
 
 /* Right Column Panels */
