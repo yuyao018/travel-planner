@@ -166,6 +166,20 @@ function PlanView({ tripId, setCurrentPage }) {
     setStopForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const timeToMinutes = (timeStr) => {
+    if (!timeStr) return null;
+    const [hrs, mins] = timeStr.split(':').map(Number);
+    return hrs * 60 + mins;
+  };
+
+  const minutesToTime = (totalMinutes) => {
+    // Handle overflow past 24 hours
+    const normalizedMinutes = totalMinutes % (24 * 60);
+    const hrs = Math.floor(normalizedMinutes / 60);
+    const mins = normalizedMinutes % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  };
+
   const handleSaveStop = async (e) => {
     e.preventDefault();
     setSavingStop(true);
@@ -179,24 +193,32 @@ function PlanView({ tripId, setCurrentPage }) {
       if (!editingStop || editingStop.location !== stopForm.location) {
         try {
           const query = `${stopForm.location || stopForm.activityTitle}, ${trip.destination}`;
+          console.log('PlanView: Geocoding stop location:', query);
           const response = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-            { headers: { 'User-Agent': 'SmartTravelPlanner/1.0' } }
+            { headers: { 'User-Agent': 'TravelPlannerApp/1.1 (Contact: travel@example.com)' } }
           );
           const data = await response.json();
           if (data && data.length > 0) {
             lat = parseFloat(data[0].lat);
             lng = parseFloat(data[0].lon);
+            console.log('PlanView: Found coordinates:', lat, lng);
+          } else {
+            console.warn('PlanView: No coordinates found for:', query);
           }
         } catch (err) {
-          console.warn('Geocoding during save failed:', err);
+          console.warn('PlanView: Geocoding during save failed:', err);
         }
       }
 
-      // 2. Construct duration string
+      // 2. Construct duration string and calculate duration in minutes
       let duration = '';
-      if (parseInt(stopForm.durationHours) > 0) duration += `${stopForm.durationHours}h `;
-      if (parseInt(stopForm.durationMinutes) > 0) duration += `${stopForm.durationMinutes}m`;
+      const dHours = parseInt(stopForm.durationHours) || 0;
+      const dMinutes = parseInt(stopForm.durationMinutes) || 0;
+      const totalDurationMinutes = dHours * 60 + dMinutes;
+
+      if (dHours > 0) duration += `${dHours}h `;
+      if (dMinutes > 0) duration += `${dMinutes}m`;
       duration = duration.trim();
 
       const finalStopData = {
@@ -207,12 +229,45 @@ function PlanView({ tripId, setCurrentPage }) {
         day: parseInt(stopForm.day),
       };
 
+      let savedStop;
       if (editingStop) {
         // Update existing stop
-        await stopsAPI.update(editingStop._id, finalStopData);
+        const result = await stopsAPI.update(editingStop._id, finalStopData);
+        savedStop = result.stop || { ...finalStopData, _id: editingStop._id };
       } else {
         // Create new stop
-        await stopsAPI.create(tripId, finalStopData);
+        const result = await stopsAPI.create(tripId, finalStopData);
+        savedStop = result.stop;
+      }
+
+      // 3. Shift subsequent stops if the saved stop has a time and duration
+      if (savedStop && savedStop.time && totalDurationMinutes > 0) {
+        const currentDayStops = stops.filter(s => 
+          s.day === savedStop.day && 
+          s._id !== savedStop._id && 
+          s.time
+        );
+
+        const newStopMinutes = timeToMinutes(savedStop.time);
+        
+        // Find stops that occur at or after the new stop's start time
+        const stopsToShift = currentDayStops.filter(s => {
+          const sMinutes = timeToMinutes(s.time);
+          return sMinutes >= newStopMinutes;
+        });
+
+        if (stopsToShift.length > 0) {
+          // Shift each stop by the new stop's duration
+          const shiftPromises = stopsToShift.map(async (s) => {
+            const currentMinutes = timeToMinutes(s.time);
+            const shiftedMinutes = currentMinutes + totalDurationMinutes;
+            const shiftedTime = minutesToTime(shiftedMinutes);
+            
+            return stopsAPI.update(s._id, { ...s, time: shiftedTime });
+          });
+
+          await Promise.all(shiftPromises);
+        }
       }
 
       // Refresh stops
@@ -553,6 +608,7 @@ function PlanView({ tripId, setCurrentPage }) {
 
             {/* Route Map */}
             <RouteMap 
+              key={`map-day-${activeDay}`}
               stops={stopsByDay[activeDay] || []} 
               destination={trip.destination} 
             />
@@ -831,9 +887,14 @@ function PlanView({ tripId, setCurrentPage }) {
                             <div className="item-details">
                               {item.notes && <span className="expense-notes-tag">{item.notes}</span>}
                               {item.originalCurrency && item.originalCurrency !== item.baseCurrency && (
-                                <div className="exchange-rate-tag">
-                                  Originally: {item.originalCurrency} {item.amount?.toFixed(2)} (rate: {item.conversionRate?.toFixed(4)})
-                                </div>
+                                <div className="exchange-rate-container">
+                                    <div className="exchange-rate-tag">
+                                      {item.originalCurrency} {item.amount?.toFixed(2)} → <span className="rate-pill">@ {item.baseCurrency} {item.convertedAmount?.toFixed(2)}</span>
+                                    </div>
+                                    <div className="unit-rate">
+                                      1 {item.originalCurrency} = {item.conversionRate?.toFixed(4)} {item.baseCurrency}
+                                    </div>
+                                  </div>
                               )}
                             </div>
                             <button 

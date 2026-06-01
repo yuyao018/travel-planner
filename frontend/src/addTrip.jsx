@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './addTrip.css';
 import { tripsAPI } from './services/api';
 
@@ -25,6 +25,63 @@ function AddTrip({ setCurrentPage }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState([]);
+  const [airportSuggestions, setAirportSuggestions] = useState({ arrival: [], departure: [] });
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showAirportSuggestions, setShowAirportSuggestions] = useState({ arrival: false, departure: false });
+  const searchTimeoutRef = useRef(null);
+  const suggestionRef = useRef(null);
+  const arrivalAirportRef = useRef(null);
+  const departureAirportRef = useRef(null);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionRef.current && !suggestionRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+      if (arrivalAirportRef.current && !arrivalAirportRef.current.contains(event.target)) {
+        setShowAirportSuggestions(prev => ({ ...prev, arrival: false }));
+      }
+      if (departureAirportRef.current && !departureAirportRef.current.contains(event.target)) {
+        setShowAirportSuggestions(prev => ({ ...prev, departure: false }));
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchAirports = async (value, type) => {
+    // If value is short or empty, just search for airports near the destination
+    const query = value.length >= 2 
+      ? `${value} airport near ${formData.destination}` 
+      : `airport near ${formData.destination}`;
+
+    if (!formData.destination) return;
+
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&featuretype=airport`,
+          { headers: { 'User-Agent': 'SmartTravelPlanner/1.0' } }
+        );
+        const data = await response.json();
+        const formatted = data.map(item => ({
+          id: item.place_id,
+          display: item.display_name.split(',')[0] + (item.address?.iata ? ` (${item.address.iata})` : ''),
+          fullName: item.display_name
+        }));
+        setAirportSuggestions(prev => ({ ...prev, [type]: formatted }));
+        setShowAirportSuggestions(prev => ({ ...prev, [type]: true }));
+      } catch (err) {
+        console.error('Airport autocomplete error:', err);
+      }
+    }, 500);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -32,6 +89,63 @@ function AddTrip({ setCurrentPage }) {
       ...prev,
       [name]: value
     }));
+
+    // Autocomplete for destination
+    if (name === 'destination') {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      
+      if (value.length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&addressdetails=1`,
+            { headers: { 'User-Agent': 'SmartTravelPlanner/1.0' } }
+          );
+          const data = await response.json();
+          const formatted = data.map(item => ({
+            id: item.place_id,
+            display: item.display_name,
+            name: item.name,
+            address: item.address
+          }));
+          setSuggestions(formatted);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error('Autocomplete error:', err);
+        }
+      }, 500);
+    }
+
+    // Autocomplete for airports
+    if (name === 'arrivalAirport') {
+      fetchAirports(value, 'arrival');
+    }
+    if (name === 'departureAirport') {
+      fetchAirports(value, 'departure');
+    }
+  };
+
+  const selectSuggestion = (suggestion) => {
+    setFormData(prev => ({
+      ...prev,
+      destination: suggestion.display
+    }));
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const selectAirportSuggestion = (suggestion, type) => {
+    setFormData(prev => ({
+      ...prev,
+      [type === 'arrival' ? 'arrivalAirport' : 'departureAirport']: suggestion.display
+    }));
+    setAirportSuggestions(prev => ({ ...prev, [type]: [] }));
+    setShowAirportSuggestions(prev => ({ ...prev, [type]: false }));
   };
 
   const togglePreference = (pref) => {
@@ -136,17 +250,32 @@ function AddTrip({ setCurrentPage }) {
                   onChange={handleInputChange}
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group" ref={suggestionRef}>
                 <label htmlFor="destination">Destination</label>
-                <input
+                <div className="autocomplete-wrapper">
+                  <input
                   type="text"
                   id="destination"
                   name="destination"
                   placeholder="e.g., Tokyo, Japan"
-                  required
                   value={formData.destination}
                   onChange={handleInputChange}
+                  autoComplete="off"
+                  required
                 />
+                {showSuggestions && suggestions.length > 0 && (
+                    <ul className="autocomplete-suggestions">
+                      {suggestions.map((suggestion) => (
+                        <li 
+                          key={suggestion.id} 
+                          onClick={() => selectSuggestion(suggestion)}
+                        >
+                          {suggestion.display}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               <div className="form-group">
                 <label htmlFor="startDate">Start Date</label>
@@ -220,16 +349,32 @@ function AddTrip({ setCurrentPage }) {
                   onChange={handleInputChange}
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group" ref={arrivalAirportRef}>
                 <label htmlFor="arrivalAirport">Arrival Airport</label>
-                <input
-                  type="text"
-                  id="arrivalAirport"
-                  name="arrivalAirport"
-                  placeholder="e.g., NRT"
-                  value={formData.arrivalAirport}
-                  onChange={handleInputChange}
-                />
+                <div className="autocomplete-wrapper">
+                  <input
+                    type="text"
+                    id="arrivalAirport"
+                    name="arrivalAirport"
+                    placeholder="e.g., NRT"
+                    value={formData.arrivalAirport}
+                    onChange={handleInputChange}
+                    onFocus={() => fetchAirports(formData.arrivalAirport, 'arrival')}
+                    autoComplete="off"
+                  />
+                  {showAirportSuggestions.arrival && airportSuggestions.arrival.length > 0 && (
+                    <ul className="autocomplete-suggestions">
+                      {airportSuggestions.arrival.map((suggestion) => (
+                        <li 
+                          key={suggestion.id} 
+                          onClick={() => selectAirportSuggestion(suggestion, 'arrival')}
+                        >
+                          {suggestion.display}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               <div className="form-group">
                 <label htmlFor="departureTime">Departure Time</label>
@@ -241,16 +386,32 @@ function AddTrip({ setCurrentPage }) {
                   onChange={handleInputChange}
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group" ref={departureAirportRef}>
                 <label htmlFor="departureAirport">Departure Airport</label>
-                <input
-                  type="text"
-                  id="departureAirport"
-                  name="departureAirport"
-                  placeholder="e.g., HND"
-                  value={formData.departureAirport}
-                  onChange={handleInputChange}
-                />
+                <div className="autocomplete-wrapper">
+                  <input
+                    type="text"
+                    id="departureAirport"
+                    name="departureAirport"
+                    placeholder="e.g., HND"
+                    value={formData.departureAirport}
+                    onChange={handleInputChange}
+                    onFocus={() => fetchAirports(formData.departureAirport, 'departure')}
+                    autoComplete="off"
+                  />
+                  {showAirportSuggestions.departure && airportSuggestions.departure.length > 0 && (
+                    <ul className="autocomplete-suggestions">
+                      {airportSuggestions.departure.map((suggestion) => (
+                        <li 
+                          key={suggestion.id} 
+                          onClick={() => selectAirportSuggestion(suggestion, 'departure')}
+                        >
+                          {suggestion.display}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               <div className="form-group full-width">
                 <label htmlFor="hotelLocation">Hotel Location / Name</label>

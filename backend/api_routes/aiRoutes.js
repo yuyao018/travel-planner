@@ -37,26 +37,55 @@ router.post('/:tripId/generate-ai', async (req, res) => {
     // Generate itinerary using AI
     const generatedStops = await aiService.generateItinerary(trip);
 
-    // Prepare stops for insertion
-    const stopsToInsert = generatedStops.map(stop => ({
-      tripId: new ObjectId(tripId),
-      userId: new ObjectId(req.user.userId),
-      day: stop.day || 1,
-      time: stop.time || null,
-      activityTitle: stop.activityTitle || 'Untitled Activity',
-      location: stop.location || '',
-      category: stop.category || 'General',
-      duration: stop.duration || null,
-      notes: stop.notes || '',
-      order: stop.order || 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
+    // Prepare stops for insertion with backend geocoding to improve map reliability
+    const stopsToInsert = [];
+    console.log(`AI Routes: Geocoding ${generatedStops.length} generated stops...`);
+    
+    for (let i = 0; i < generatedStops.length; i++) {
+      const stop = generatedStops[i];
+      let lat = null;
+      let lng = null;
 
-    // Optionally clear existing stops first? 
-    // For now, let's just append or let the user decide. 
-    // User asked to "show the travel plan", usually implying replacement or a fresh start.
-    // Let's clear existing stops for this trip to avoid duplicates if they click multiple times.
+      try {
+        // Only geocode if location is provided
+        if (stop.location) {
+          const query = `${stop.location}, ${trip.destination}`;
+          // Nominatim requires 1s delay
+          if (i > 0) await new Promise(resolve => setTimeout(resolve, 1100));
+          
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+            { headers: { 'User-Agent': 'TravelPlannerApp/1.1 (Contact: travel@example.com)' } }
+          );
+          const geoData = await geoRes.json();
+          if (geoData && geoData.length > 0) {
+            lat = parseFloat(geoData[0].lat);
+            lng = parseFloat(geoData[0].lon);
+          }
+        }
+      } catch (geoErr) {
+        console.warn(`AI Routes: Geocoding failed for stop ${i}:`, geoErr.message);
+      }
+
+      stopsToInsert.push({
+        tripId: new ObjectId(tripId),
+        userId: new ObjectId(req.user.userId),
+        day: stop.day || 1,
+        time: stop.time || null,
+        activityTitle: stop.activityTitle || 'Untitled Activity',
+        location: stop.location || '',
+        category: stop.category || 'General',
+        duration: stop.duration || null,
+        notes: stop.notes || '',
+        order: stop.order || 0,
+        lat,
+        lng,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    // Clear existing stops for this trip to avoid duplicates
     await stopsCollection.deleteMany({ tripId: new ObjectId(tripId) });
     
     if (stopsToInsert.length > 0) {

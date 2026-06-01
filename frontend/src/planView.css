@@ -692,14 +692,35 @@
   padding-left: 8px;
 }
 
+.exchange-rate-container {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.unit-rate {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  opacity: 0.8;
+}
+
 .exchange-rate-tag {
-  background: #f4f6fa;
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: #5c6b89;
-  font-size: 11px;
-  display: inline-block;
-  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rate-pill {
+  background: #E8F5E9;
+  color: #2E7D32;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .budget-right {
