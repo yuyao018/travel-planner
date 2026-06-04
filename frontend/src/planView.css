@@ -84,6 +84,15 @@
   gap: 12px;
 }
 
+.trip-subtitle {
+  color: var(--orange-accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
 .hero-info {
   display: flex;
   gap: 20px;

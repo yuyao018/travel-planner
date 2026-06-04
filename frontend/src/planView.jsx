@@ -477,6 +477,7 @@ function PlanView({ tripId, setCurrentPage }) {
           <a href="#" className="back-link" onClick={() => setCurrentPage('home')}>
             <ion-icon name="arrow-back-outline"></ion-icon> Back to Dashboard
           </a>
+          <p className="trip-subtitle">{trip.tripName}</p>
           <h1>{trip.destination}</h1>
           <div className="hero-info">
             <span><ion-icon name="calendar-outline"></ion-icon> {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</span>
