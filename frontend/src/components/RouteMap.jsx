@@ -2,254 +2,324 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { routingAPI } from '../services/api';
 
-// Simple Persistent Cache for Geocoding
+// ─── Geocoding Cache ──────────────────────────────────────────────────────────
 const getCacheKey = (query) => `geo_cache_${query.toLowerCase().replace(/\W/g, '_')}`;
 const getCachedCoords = (query) => {
-  try {
-    const cached = localStorage.getItem(getCacheKey(query));
-    return cached ? JSON.parse(cached) : null;
-  } catch { return null; }
+  try { return JSON.parse(localStorage.getItem(getCacheKey(query))); } catch { return null; }
 };
 const setCachedCoords = (query, coords) => {
-  try {
-    localStorage.setItem(getCacheKey(query), JSON.stringify(coords));
-  } catch { /* storage full or private mode */ }
+  try { localStorage.setItem(getCacheKey(query), JSON.stringify(coords)); } catch {}
 };
 
-/**
- * Component to automatically adjust map bounds to fit all markers
- */
+// ─── Route Cache ──────────────────────────────────────────────────────────────
+const getRouteCacheKey = (waypoints, profile) =>
+  `route_${profile}_${waypoints.map(w => `${w.lat.toFixed(4)}_${w.lng.toFixed(4)}`).join('|')}`;
+const getCachedRoute = (waypoints, profile) => {
+  try { return JSON.parse(localStorage.getItem(getRouteCacheKey(waypoints, profile))); } catch { return null; }
+};
+const setCachedRoute = (waypoints, profile, data) => {
+  try { localStorage.setItem(getRouteCacheKey(waypoints, profile), JSON.stringify(data)); } catch {}
+};
+
+// ─── ChangeView: auto-fits map bounds ────────────────────────────────────────
 function ChangeView({ bounds, center }) {
   const map = useMap();
-  
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const t = setTimeout(() => {
       map.invalidateSize();
-      if (bounds && bounds.length > 0) {
-        try {
-          if (bounds.length === 1) {
-            map.setView(bounds[0], 13);
-          } else {
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-          }
-        } catch (err) { console.warn('Map fitBounds failed:', err); }
+      if (bounds && bounds.length > 1) {
+        try { map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 }); } catch {}
+      } else if (bounds && bounds.length === 1) {
+        map.setView(bounds[0], 13);
       } else if (center) {
         map.setView(center, 13);
       }
     }, 300);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [bounds, center, map]);
-
   return null;
 }
 
-/**
- * Custom Marker Icon Generator
- */
-const createCustomIcon = (number, color = '#E07B2A') => {
-  return L.divIcon({
+// ─── Custom Numbered Marker ───────────────────────────────────────────────────
+const createCustomIcon = (number, color = '#E07B2A') =>
+  L.divIcon({
     className: 'custom-map-marker',
-    html: `<div style="
-      background-color: ${color};
-      color: white;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: 800;
-      font-size: 13px;
-      border: 2px solid white;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-      position: relative;
-    ">${number}</div>`,
+    html: `<div style="background:${color};color:white;width:26px;height:26px;border-radius:50%;
+      display:flex;justify-content:center;align-items:center;font-weight:800;font-size:13px;
+      border:2px solid white;box-shadow:0 3px 6px rgba(0,0,0,0.3);">${number}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });
-};
 
+// ─── Routing Panel (rendered inside MapContainer via portal trick) ────────────
+function RoutingPanel({ markers, onRouteCalculated, routeLoading, profile, setProfile, showRealRoute, onToggle }) {
+
+  const handleCalculate = async () => {
+    if (markers.length < 2) return;
+    const waypoints = markers.map(m => ({ lat: m.lat, lng: m.lng }));
+
+    // Check cache first
+    const cached = getCachedRoute(waypoints, profile);
+    if (cached) { onRouteCalculated(cached); return; }
+
+    try {
+      let res;
+      if (waypoints.length === 2) {
+        res = await routingAPI.getDirections(waypoints[0], waypoints[1], profile);
+      } else {
+        res = await routingAPI.getMultiStopRoute(waypoints, profile);
+      }
+      setCachedRoute(waypoints, profile, res.route);
+      onRouteCalculated(res.route);
+    } catch (err) {
+      console.error('Route calculation failed:', err);
+      alert('Could not calculate route: ' + err.message);
+      onRouteCalculated(null);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'absolute', top: 10, left: 10, zIndex: 1000,
+      background: 'rgba(255,255,255,0.96)', borderRadius: 10,
+      padding: '10px 14px', boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+      display: 'flex', flexDirection: 'column', gap: 8, minWidth: 190,
+      pointerEvents: 'auto'
+    }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>🗺 Route Options</div>
+
+      {/* Toggle real routes */}
+      <label style={{ fontSize: 11, color: '#555', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+        <input type="checkbox" checked={showRealRoute} onChange={e => onToggle(e.target.checked)} />
+        Show real road route
+      </label>
+
+      {showRealRoute && (
+        <>
+          {/* Travel mode selector */}
+          <select
+            value={profile}
+            onChange={e => setProfile(e.target.value)}
+            style={{ fontSize: 11, padding: '4px 6px', borderRadius: 4, border: '1px solid #ddd' }}
+          >
+            <option value="driving">🚗 Driving</option>
+            <option value="walking">🚶 Walking</option>
+            <option value="cycling">🚲 Cycling</option>
+          </select>
+
+          {/* Calculate button */}
+          <button
+            onClick={handleCalculate}
+            disabled={routeLoading || markers.length < 2}
+            style={{
+              fontSize: 11, padding: '6px 10px', borderRadius: 4, border: 'none',
+              background: markers.length < 2 ? '#ccc' : '#E07B2A',
+              color: 'white', cursor: markers.length < 2 ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+            }}
+          >
+            {routeLoading
+              ? <><span style={{ width: 10, height: 10, border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} /> Calculating…</>
+              : `Calculate (${markers.length} stops)`
+            }
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Main RouteMap Component ──────────────────────────────────────────────────
 function RouteMap({ stops, destination }) {
-  const [markers, setMarkers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [destCenter, setDestCenter] = useState([35.6762, 139.6503]); // Default Tokyo
+  const [markers, setMarkers]           = useState([]);
+  const [loading, setLoading]           = useState(false);
+  const [destCenter, setDestCenter]     = useState([35.6762, 139.6503]);
+  const [showRealRoute, setShowRealRoute] = useState(false);
+  const [routeGeometry, setRouteGeometry] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeInfo, setRouteInfo]       = useState(null);
+  const [profile, setProfile]           = useState('driving');
 
-  // Helper for rate limiting
-  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  const delay = ms => new Promise(r => setTimeout(r, ms));
 
-  const cleanLocationQuery = useCallback((location, title) => {
-    let query = location || title;
-    if (!query) return '';
-    return query.replace(/\s+or\s+.*/i, '').replace(/\(.*\)/g, '').replace(/Area/gi, '').trim();
+  const cleanQuery = useCallback((location, title) => {
+    const q = location || title || '';
+    return q.replace(/\s+or\s+.*/i, '').replace(/\(.*\)/g, '').replace(/Area/gi, '').trim();
   }, []);
 
-  const stopsJson = useMemo(() => 
-    JSON.stringify((stops || []).map(s => ({ id: s._id, l: s.location, t: s.time, la: s.lat, ln: s.lng }))),
+  const stopsKey = useMemo(() =>
+    JSON.stringify((stops || []).map(s => ({ id: s._id, l: s.location, la: s.lat, ln: s.lng }))),
     [stops]
   );
 
-  const addJitter = (coord, index) => coord + (0.0001 * index);
+  const jitter = (coord, i) => coord + 0.0001 * i;
 
-  // 1. Geocode the destination once to set the map center
+  // ── Handle route result from OSRM ──────────────────────────────────────────
+  const handleRouteCalculated = useCallback((route) => {
+    setRouteLoading(false);
+    if (!route) { setRouteGeometry(null); setRouteInfo(null); return; }
+
+    if (route.geometry?.coordinates) {
+      // OSRM returns [lng, lat] — Leaflet needs [lat, lng]
+      setRouteGeometry(route.geometry.coordinates.map(c => [c[1], c[0]]));
+      setRouteInfo({
+        distance: route.totalDistance || route.distance,
+        duration: route.totalDuration || route.duration,
+      });
+    }
+  }, []);
+
+  // ── Toggle real routes on/off ──────────────────────────────────────────────
+  const handleToggle = useCallback((enabled) => {
+    setShowRealRoute(enabled);
+    if (!enabled) { setRouteGeometry(null); setRouteInfo(null); }
+  }, []);
+
+  // ── Geocode destination for initial map center ─────────────────────────────
   useEffect(() => {
-    const geocodeDestination = async () => {
-      if (!destination) return;
-      const cached = getCachedCoords(destination);
-      if (cached) {
-        console.log('RouteMap: Using cached dest center for', destination);
-        setDestCenter([cached.lat, cached.lng]);
-        return;
-      }
-      try {
-        console.log('RouteMap: Fetching dest center for', destination);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destination)}&limit=1`, { 
-          headers: { 'User-Agent': 'TravelPlannerApp/1.1 (Contact: travel@example.com)' } 
-        });
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-          console.log('RouteMap: Found dest center', coords);
-          setDestCenter([coords.lat, coords.lng]);
-          setCachedCoords(destination, coords);
-        } else if (markers.length > 0) {
-          // Fallback to first marker if destination search fails
-          console.log('RouteMap: Dest search failed, falling back to first marker');
-          setDestCenter([markers[0].lat, markers[0].lng]);
-        }
-      } catch (err) { 
-        console.warn('RouteMap: Dest geocode failed:', err); 
-        if (markers.length > 0) {
-          setDestCenter([markers[0].lat, markers[0].lng]);
-        }
-      }
-    };
-    geocodeDestination();
-  }, [destination, markers.length]);
+    if (!destination) return;
+    const cached = getCachedCoords(destination);
+    if (cached) { setDestCenter([cached.lat, cached.lng]); return; }
 
-  // 2. Main Geocoding Effect
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destination)}&limit=1`,
+      { headers: { 'User-Agent': 'TravelPlannerApp/1.1' } })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.[0]) {
+          const c = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+          setDestCenter([c.lat, c.lng]);
+          setCachedCoords(destination, c);
+        }
+      })
+      .catch(() => {});
+  }, [destination]);
+
+  // ── Geocode all stops ──────────────────────────────────────────────────────
   useEffect(() => {
-    let isMounted = true;
-    console.log('RouteMap: Geocoding started for', stops?.length, 'stops');
+    let active = true;
+    if (!stops?.length) { setMarkers([]); return; }
 
-    const geocodeAll = async () => {
-      if (!stops || stops.length === 0) {
-        setMarkers([]);
-        return;
-      }
-
+    const run = async () => {
       setLoading(true);
-      const newMarkers = [];
+      const result = [];
 
       for (let i = 0; i < stops.length; i++) {
-        if (!isMounted) return;
-        const stop = stops[i];
-        
-        // Step A: Use explicit coordinates if they exist
-        if (stop.lat !== undefined && stop.lat !== null && stop.lng !== undefined && stop.lng !== null && !isNaN(parseFloat(stop.lat))) {
-          console.log('RouteMap: Using explicit coords for', stop.activityTitle);
-          newMarkers.push({
-            id: stop._id || `m-${i}`,
-            lat: addJitter(parseFloat(stop.lat), i),
-            lng: addJitter(parseFloat(stop.lng), i),
-            title: stop.activityTitle,
-            time: stop.time
-          });
-          if (isMounted) setMarkers([...newMarkers]);
+        if (!active) return;
+        const s = stops[i];
+
+        // A – use stored coordinates
+        if (s.lat != null && s.lng != null && !isNaN(parseFloat(s.lat))) {
+          result.push({ id: s._id || `m${i}`, lat: jitter(parseFloat(s.lat), i), lng: jitter(parseFloat(s.lng), i), title: s.activityTitle, time: s.time });
+          if (active) setMarkers([...result]);
           continue;
         }
 
-        // Step B: Use Local Cache
-        const searchLocation = cleanLocationQuery(stop.location, stop.activityTitle);
-        if (!searchLocation) {
-          console.warn('RouteMap: No location for stop', i);
-          continue;
-        }
-        
-        const query = `${searchLocation}, ${destination}`;
+        // B – local cache
+        const q = cleanQuery(s.location, s.activityTitle);
+        if (!q) continue;
+        const query = `${q}, ${destination}`;
         const cached = getCachedCoords(query);
-        
         if (cached) {
-          console.log('RouteMap: Using cached coords for', searchLocation);
-          newMarkers.push({
-            id: stop._id || `c-${i}`,
-            lat: addJitter(cached.lat, i),
-            lng: addJitter(cached.lng, i),
-            title: stop.activityTitle,
-            time: stop.time
-          });
-          if (isMounted) setMarkers([...newMarkers]);
+          result.push({ id: s._id || `c${i}`, lat: jitter(cached.lat, i), lng: jitter(cached.lng, i), title: s.activityTitle, time: s.time });
+          if (active) setMarkers([...result]);
           continue;
         }
 
-        // Step C: Call API (with strict throttling)
+        // C – Nominatim (rate-limited)
         try {
-          console.log('RouteMap: Fetching Nominatim for', query);
-          await delay(1200); // 1.2s delay for safety
-          if (!isMounted) return;
-
-          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, { 
-            headers: { 'User-Agent': 'TravelPlannerApp/1.1 (Contact: travel@example.com)' } 
-          });
-          
-          if (res.status === 429) {
-            console.warn('RouteMap: Rate limit! Waiting 5s...');
-            await delay(5000);
-            i--; continue;
-          }
-
+          if (i > 0) await delay(1200);
+          if (!active) return;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+            { headers: { 'User-Agent': 'TravelPlannerApp/1.1' } }
+          );
+          if (res.status === 429) { await delay(5000); i--; continue; }
           const data = await res.json();
-          if (data && data.length > 0) {
-            const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-            console.log('RouteMap: Found coords for', query, coords);
-            newMarkers.push({
-              id: stop._id || `g-${i}`,
-              lat: addJitter(coords.lat, i),
-              lng: addJitter(coords.lng, i),
-              title: stop.activityTitle,
-              time: stop.time
-            });
-            setCachedCoords(query, coords);
-            if (isMounted) setMarkers([...newMarkers]);
-          } else {
-            console.warn('RouteMap: No results for', query);
+          if (data?.[0]) {
+            const c = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+            setCachedCoords(query, c);
+            result.push({ id: s._id || `g${i}`, lat: jitter(c.lat, i), lng: jitter(c.lng, i), title: s.activityTitle, time: s.time });
+            if (active) setMarkers([...result]);
           }
-        } catch (err) { 
-          console.error('RouteMap: Geocode error for', query, err); 
-        }
+        } catch {}
       }
-      if (isMounted) {
-        setLoading(false);
-        console.log('RouteMap: Geocoding finished. Markers found:', newMarkers.length);
-      }
+
+      if (active) setLoading(false);
     };
 
-    geocodeAll();
-    return () => { isMounted = false; };
-  }, [stopsJson, destination, cleanLocationQuery]);
+    run();
+    return () => { active = false; };
+  }, [stopsKey, destination, cleanQuery]);
 
-  const polylinePositions = useMemo(() => 
-    markers.map(m => [m.lat, m.lng]), [markers]
-  );
+  // ── Auto-recalculate when profile changes (if already showing real route) ──
+  useEffect(() => {
+    if (!showRealRoute || markers.length < 2) return;
+    const waypoints = markers.map(m => ({ lat: m.lat, lng: m.lng }));
+    const cached = getCachedRoute(waypoints, profile);
+    if (cached) { handleRouteCalculated(cached); return; }
+
+    setRouteLoading(true);
+    const run = async () => {
+      try {
+        const res = waypoints.length === 2
+          ? await routingAPI.getDirections(waypoints[0], waypoints[1], profile)
+          : await routingAPI.getMultiStopRoute(waypoints, profile);
+        setCachedRoute(waypoints, profile, res.route);
+        handleRouteCalculated(res.route);
+      } catch { setRouteLoading(false); }
+    };
+    run();
+  // Only re-run when profile changes while showRealRoute is on
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
+  // ── Polyline positions: real road geometry OR straight-line fallback ────────
+  const polylinePositions = useMemo(() => {
+    if (showRealRoute && routeGeometry) return routeGeometry;
+    return markers.map(m => [m.lat, m.lng]);
+  }, [markers, routeGeometry, showRealRoute]);
+
+  const boundsForView = polylinePositions.length > 0 ? polylinePositions : null;
 
   return (
-    <div className="route-map-container" style={{ height: '350px', width: '100%', marginBottom: '20px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)', background: '#f0f0f0', position: 'relative', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+    <div style={{
+      height: 380, width: '100%', marginBottom: 20, borderRadius: 16,
+      overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)',
+      background: '#f0f0f0', position: 'relative',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+    }}>
+      {/* Geocoding spinner */}
       {loading && (
-        <div className="map-loading-overlay" style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(255,255,255,0.95)', padding: '8px 16px', borderRadius: '30px', fontSize: '12px', fontWeight: '700', zIndex: 2000, color: '#E07B2A', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-          <div className="mini-spinner" style={{ width: '12px', height: '12px', border: '2px solid #E07B2A', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-          Mapping route... {markers.length}/{stops?.length}
-        </div>
-      )}
-      
-      {!destCenter && !loading && (
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8f9fa', color: '#666', fontSize: '14px', zIndex: 10 }}>
-          Initializing map for {destination}...
+        <div style={{
+          position: 'absolute', top: 15, right: 15, background: 'rgba(255,255,255,0.95)',
+          padding: '8px 16px', borderRadius: 30, fontSize: 12, fontWeight: 700,
+          zIndex: 2000, color: '#E07B2A', display: 'flex', alignItems: 'center', gap: 8,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <span style={{ width: 12, height: 12, border: '2px solid #E07B2A', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+          Mapping… {markers.length}/{stops?.length}
         </div>
       )}
 
-      <MapContainer 
-        center={destCenter || [35.6762, 139.6503]} 
-        zoom={13} 
+      {/* Route info badge */}
+      {routeInfo && showRealRoute && (
+        <div style={{
+          position: 'absolute', bottom: 10, right: 10, background: 'rgba(255,255,255,0.96)',
+          padding: '8px 12px', borderRadius: 8, fontSize: 11, zIndex: 1000,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', lineHeight: 1.6
+        }}>
+          <div style={{ fontWeight: 700, color: '#E07B2A', marginBottom: 2 }}>Route Summary</div>
+          <div>📏 {routeInfo.distance?.km ?? '–'} km</div>
+          <div>⏱ {routeInfo.duration?.minutes ?? '–'} min</div>
+          <div style={{ color: '#888', fontSize: 10 }}>via {profile}</div>
+        </div>
+      )}
+
+      <MapContainer
+        center={destCenter}
+        zoom={13}
         style={{ height: '100%', width: '100%', zIndex: 1 }}
         scrollWheelZoom={false}
       >
@@ -257,24 +327,49 @@ function RouteMap({ stops, destination }) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
-        
-        {markers.map((marker, index) => (
-          <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={createCustomIcon(index + 1)}>
+
+        {/* Stop markers */}
+        {markers.map((m, idx) => (
+          <Marker key={m.id} position={[m.lat, m.lng]} icon={createCustomIcon(idx + 1)}>
             <Popup>
-              <div style={{ padding: '2px', minWidth: '120px' }}>
-                <div style={{ color: '#E07B2A', fontWeight: '800', fontSize: '11px', marginBottom: '2px' }}>{marker.time || 'No time set'}</div>
-                <div style={{ fontWeight: '600', fontSize: '14px', lineHeight: '1.2' }}>{marker.title}</div>
+              <div style={{ minWidth: 120 }}>
+                <div style={{ color: '#E07B2A', fontWeight: 800, fontSize: 11 }}>{m.time || 'No time'}</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{m.title}</div>
               </div>
             </Popup>
           </Marker>
         ))}
 
+        {/* Route line — blue solid for real road, orange dashed for straight-line */}
         {polylinePositions.length > 1 && (
-          <Polyline positions={polylinePositions} color="#E07B2A" weight={4} opacity={0.6} dashArray="8, 12" lineJoin="round" lineCap="round" />
+          <Polyline
+            positions={polylinePositions}
+            color={showRealRoute && routeGeometry ? '#2563eb' : '#E07B2A'}
+            weight={showRealRoute && routeGeometry ? 5 : 4}
+            opacity={showRealRoute && routeGeometry ? 0.85 : 0.6}
+            dashArray={showRealRoute && routeGeometry ? null : '8, 12'}
+            lineJoin="round"
+            lineCap="round"
+          />
         )}
 
-        <ChangeView bounds={polylinePositions.length > 0 ? polylinePositions : null} center={destCenter} />
+        {/* Routing panel overlay */}
+        <RoutingPanel
+          markers={markers}
+          onRouteCalculated={handleRouteCalculated}
+          routeLoading={routeLoading}
+          profile={profile}
+          setProfile={setProfile}
+          showRealRoute={showRealRoute}
+          onToggle={handleToggle}
+        />
+
+        <ChangeView bounds={boundsForView} center={destCenter} />
       </MapContainer>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

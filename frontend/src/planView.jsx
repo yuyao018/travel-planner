@@ -34,7 +34,7 @@ function PlanView({ tripId, setCurrentPage }) {
   const [expenseForm, setExpenseForm] = useState({ amount: '', currency: '', category: 'Food', notes: '' });
   const [addingExpense, setAddingExpense] = useState(false);
 
-  // Nearby places (Foursquare) state
+  // Nearby places state
   const [placesQuery, setPlacesQuery] = useState('');
   const [placesResults, setPlacesResults] = useState([]);
   const [placesLoading, setPlacesLoading] = useState(false);
@@ -350,7 +350,7 @@ function PlanView({ tripId, setCurrentPage }) {
     return icons[category?.toLowerCase()] || '📍';
   };
 
-  // ─── Nearby Places (Foursquare) Handlers ─────────────────────────────────
+  // ─── Nearby Places Handlers ───────────────────────────────────────────────
 
   const handleSearchPlaces = async (e) => {
     e.preventDefault();
@@ -361,7 +361,6 @@ function PlanView({ tripId, setCurrentPage }) {
     setPlacesResults([]);
 
     try {
-      // Use trip destination as the "near" location — Foursquare geocodes it
       const data = await placesAPI.searchByLocation(
         placesQuery.trim(),
         trip.destination,

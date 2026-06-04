@@ -1129,6 +1129,144 @@
   background: rgba(16, 185, 129, 0.1);
 }
 
+/* ─── Directions Sub-panel ───────────────────────────────────────────────────── */
+
+.directions-subpanel {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 14px;
+}
+
+.directions-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.directions-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(224, 123, 42, 0.06);
+}
+
+.directions-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.input-with-datalist {
+  position: relative;
+}
+
+.input-with-datalist input {
+  width: 100%;
+}
+
+.directions-form input,
+.directions-form select {
+  padding: 9px 12px;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--background);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.directions-form input:focus,
+.directions-form select:focus {
+  border-color: var(--primary);
+}
+
+.directions-form input::placeholder {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Show dropdown indicator when input has datalist */
+.input-with-datalist input::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.input-with-datalist input:hover::-webkit-calendar-picker-indicator {
+  opacity: 0.8;
+}
+
+.directions-form button[type='submit'] {
+  padding: 9px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.directions-form button[type='submit']:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.directions-result {
+  margin-top: 12px;
+  background: var(--background);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 13px;
+}
+
+.directions-summary {
+  display: flex;
+  gap: 16px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.directions-addresses {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+
+.directions-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.directions-steps li {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.step-meta {
+  color: var(--text-muted);
+}
+
 /* ─── Currency Conversion Display ───────────────────────────────────────────── */
 
 .conversion-note {
