@@ -50,14 +50,25 @@ router.post('/:tripId/generate-ai', async (req, res) => {
         // Only geocode if location is provided
         if (stop.location) {
           const query = `${stop.location}, ${trip.destination}`;
-          // Nominatim requires 1s delay
-          if (i > 0) await new Promise(resolve => setTimeout(resolve, 1100));
-          
-          const geoRes = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-            { headers: { 'User-Agent': 'TravelPlannerApp/1.1 (Contact: travel@example.com)' } }
-          );
-          const geoData = await geoRes.json();
+          // Nominatim policy: minimum 1s between requests; use 1.5s to be safe
+          if (i > 0) await new Promise(resolve => setTimeout(resolve, 1500));
+
+          let geoData = null;
+          // Retry once on transient failures (rate limit / access denied)
+          for (let attempt = 0; attempt < 2; attempt++) {
+            if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 3000));
+            const geoRes = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+              { headers: { 'User-Agent': 'TravelPlannerApp/1.0' } }
+            );
+            if (!geoRes.ok) {
+              const text = await geoRes.text();
+              throw new Error(`Nominatim returned HTTP ${geoRes.status}: ${text.slice(0, 80)}`);
+            }
+            geoData = await geoRes.json();
+            break;
+          }
+
           if (geoData && geoData.length > 0) {
             lat = parseFloat(geoData[0].lat);
             lng = parseFloat(geoData[0].lon);
