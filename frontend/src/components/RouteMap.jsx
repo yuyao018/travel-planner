@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { routingAPI } from '../services/api';
@@ -308,11 +308,13 @@ function RouteMap({ stops, destination }) {
         zoom={13}
         style={{ height: '100%', width: '100%', zIndex: 1 }}
         scrollWheelZoom={false}
+        zoomControl={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
+        <ZoomControl position="bottomleft" />
 
         {/* Stop markers */}
         {markers.map((m, idx) => (
