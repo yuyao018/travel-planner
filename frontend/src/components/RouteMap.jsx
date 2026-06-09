@@ -254,25 +254,11 @@ function RouteMap({ stops, destination }) {
   }, [stopsKey, destination, cleanQuery]);
 
   // ── Auto-recalculate when profile changes (if already showing real route) ──
+  // Clear existing route result and force the user to recalculate with the new
+  // profile. This avoids stale-closure issues and makes the behaviour explicit.
   useEffect(() => {
-    if (!showRealRoute || markers.length < 2) return;
-    const waypoints = markers.map(m => ({ lat: m.lat, lng: m.lng }));
-    const cached = getCachedRoute(waypoints, profile);
-    if (cached) { handleRouteCalculated(cached); return; }
-
-    setRouteLoading(true);
-    const run = async () => {
-      try {
-        const res = waypoints.length === 2
-          ? await routingAPI.getDirections(waypoints[0], waypoints[1], profile)
-          : await routingAPI.getMultiStopRoute(waypoints, profile);
-        setCachedRoute(waypoints, profile, res.route);
-        handleRouteCalculated(res.route);
-      } catch { setRouteLoading(false); }
-    };
-    run();
-  // Only re-run when profile changes while showRealRoute is on
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setRouteGeometry(null);
+    setRouteInfo(null);
   }, [profile]);
 
   // ── Polyline positions: real road geometry OR straight-line fallback ────────

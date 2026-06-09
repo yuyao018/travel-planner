@@ -17,9 +17,20 @@ async function getRoute(origin, destination, profile = 'driving') {
     throw new Error(`Invalid profile. Must be one of: ${validProfiles.join(', ')}`);
   }
 
+  // The public OSRM demo exposes each profile on its own subdomain:
+  //   car     → router.project-osrm.org   (driving)
+  //   foot    → routing.openstreetmap.de/routed-foot
+  //   bicycle → routing.openstreetmap.de/routed-bike
+  const profileMap = {
+    driving: 'https://router.project-osrm.org/route/v1/driving',
+    walking: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
+    cycling: 'https://routing.openstreetmap.de/routed-bike/route/v1/bike',
+  };
+
+  const baseUrl = profileMap[profile];
   // OSRM uses lng,lat format
   const coordinates = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
-  const url = `https://router.project-osrm.org/route/v1/${profile}/${coordinates}?overview=full&geometries=geojson`;
+  const url = `${baseUrl}/${coordinates}?overview=full&geometries=geojson`;
 
   const response = await fetch(url);
 
@@ -59,8 +70,15 @@ async function getMultiStopRoute(waypoints, profile = 'driving') {
     throw new Error('At least two waypoints are required.');
   }
 
+  const profileMap = {
+    driving: 'https://router.project-osrm.org/route/v1/driving',
+    walking: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
+    cycling: 'https://routing.openstreetmap.de/routed-bike/route/v1/bike',
+  };
+
+  const baseUrl = profileMap[profile] || profileMap.driving;
   const coordinates = waypoints.map(wp => `${wp.lng},${wp.lat}`).join(';');
-  const url = `https://router.project-osrm.org/route/v1/${profile}/${coordinates}?overview=full&geometries=geojson&steps=true`;
+  const url = `${baseUrl}/${coordinates}?overview=full&geometries=geojson&steps=true`;
 
   const response = await fetch(url);
 
